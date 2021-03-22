@@ -258,16 +258,111 @@ let
      |  parse_rparen rest = raise ParseError "parser ended expecting ')'";
 
 
-
     (*****************************************)
     (* interpretation functions              *)
     (*****************************************)
+
+
+(* built-in functions            *)
+  fun car (Sexp(a,b)) = a;
+
+  fun car (Sexp(a,b)) = b;
+
+  fun cons (Sexp(a,b)) = Sexp(a,b);
+
+  fun atom (Sexp(a,b)) = AtomExp(NIL)
+   |  atom (AtomExp(a)) = AtomExp(T);
+
+  fun int (AtomExp(a)) =
+    (case a of
+          Int i => AtomExp(T)
+         | _ => AtomExp(NIL));
+
+  fun null (AtomExp(a)) =
+   (case a of
+         NIL => AtomExp(T)
+        | _ => AtomExp(NIL));
+
+  fun less (Sexp(AtomExp(a),AtomExp(b))) =
+   (case (a,b) of
+         (Int i, Int j) =>
+         if i < j then AtomExp(T)
+         else AtomExp(NIL)
+        | _ => AtomExp(NIL));
+
+  fun greater (Sexp(AtomExp(a),AtomExp(b))) =
+    (case (a,b) of
+          (Int i, Int j) =>
+          if i > j then AtomExp(T)
+          else AtomExp(NIL)
+         | _ => AtomExp(NIL));
+
+   fun eq (Sexp(AtomExp(a),AtomExp(b))) =
+     (case (a,b) of
+           (Int i, Int j) =>
+           if i = j then AtomExp(T)
+           else AtomExp(NIL)
+          | _ => AtomExp(NIL));
+
+  fun plus (Sexp(AtomExp(a),AtomExp(b))) =
+    (case (a,b) of
+          (Int i, Int j) =>
+            let
+              val atom = i+j
+            in
+              AtomExp(Int(atom))
+            end
+         | _ => AtomExp(NIL));
+
+   fun minus (Sexp(AtomExp(a),AtomExp(b))) =
+     (case (a,b) of
+           (Int i, Int j) =>
+             let
+               val atom = i-j
+             in
+               AtomExp(Int(atom))
+             end
+          | _ => AtomExp(NIL));
+
+  fun times (Sexp(AtomExp(a),AtomExp(b))) =
+    (case (a,b) of
+          (Int i, Int j) =>
+            let
+              val atom = i*j
+            in
+              AtomExp(Int(atom))
+            end
+         | _ => AtomExp(NIL));
+
+   fun quotient (Sexp(AtomExp(a),AtomExp(b))) =
+     (case (a,b) of
+           (Int i, Int j) =>
+             let
+               val atom = i div j
+             in
+               AtomExp(Int(atom))
+             end
+          | _ => AtomExp(NIL));
+
+    fun remainder (Sexp(AtomExp(a),AtomExp(b))) =
+      (case (a,b) of
+            (Int i, Int j) =>
+              let
+                val atom = i mod j
+              in
+                AtomExp(Int(atom))
+              end
+           | _ => AtomExp(NIL));
+(* built-in functions            *)
+
+
 
     (* function: bound - checks that referenced variables are bound in a-list *)
     fun bound x z =
     ;
     (* function: getval - returns the value of a variable from the a-list *)
     fun getval name alist =
+     (* |  getval name [] =  *)
     ;
 
     (* function: eval_defun - checks defun usage and adds function def to the global d-list *)
@@ -285,6 +380,11 @@ let
 
     (* function: eval - top-level s-expression evaluation loop *)
     fun eval exp a d =
+      (case exp of
+             AtomExp NIL => AtomExp(NIL)
+           | AtomExp T => AtomExp(T)
+           | AtomExp Int i => AtomExp(Int(i))
+           | AtomExp Ident s => AtomExp(NIL))
 
     (* function: evcon - evaluates a COND statement *)
     and evcon x a d =
