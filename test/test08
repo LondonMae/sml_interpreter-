@@ -1,4 +1,4 @@
-(defun notsosilly (a b) 
+(defun notsosilly (a b)
             (cond
                ((eq a 0) (plus b 1))
                ((eq b 0) (notsosilly (minus a 1) 1))

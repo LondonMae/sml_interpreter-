@@ -264,11 +264,13 @@ let
 
 
 (* built-in functions            *)
-  fun car (Sexp(a,b)) = a;
+  fun car (Sexp(a,b)) = a
+    | car _ = raise ParameterMismatch;
 
-  fun car (Sexp(a,b)) = b;
+  fun cdr (Sexp(a,b)) = b
+    | cdr _ = raise ParameterMismatch;
 
-  fun cons (Sexp(a,b)) = Sexp(a,b);
+  fun cons a b = Sexp(a,b);
 
   fun atom (Sexp(a,b)) = AtomExp(NIL)
    |  atom (AtomExp(a)) = AtomExp(T);
@@ -276,35 +278,50 @@ let
   fun int (AtomExp(a)) =
     (case a of
           Int i => AtomExp(T)
-         | _ => AtomExp(NIL));
+         | _ => AtomExp(NIL) )
+    | int _ = raise ParameterMismatch;
+     ;
 
   fun null (AtomExp(a)) =
    (case a of
          NIL => AtomExp(T)
-        | _ => AtomExp(NIL));
+        | _ => AtomExp(NIL))
+    | null (Sexp(h,t)) = AtomExp(NIL)
 
-  fun less (Sexp(AtomExp(a),AtomExp(b))) =
+  fun less (AtomExp(a)) (AtomExp(b)) =
    (case (a,b) of
          (Int i, Int j) =>
          if i < j then AtomExp(T)
          else AtomExp(NIL)
-        | _ => AtomExp(NIL));
+        | (Ident a, Ident b) =>
+          if a < b then AtomExp(T)
+           else AtomExp(NIL)
+        | _ => AtomExp(NIL))
+    | less _ _ = raise ParameterMismatch;
 
-  fun greater (Sexp(AtomExp(a),AtomExp(b))) =
+  fun greater (AtomExp(a)) (AtomExp(b)) =
     (case (a,b) of
           (Int i, Int j) =>
           if i > j then AtomExp(T)
           else AtomExp(NIL)
-         | _ => AtomExp(NIL));
+         | (Ident a, Ident b) =>
+           if a > b then AtomExp(T)
+            else AtomExp(NIL)
+         | _ => AtomExp(NIL))
+    | greater _ _ = raise ParameterMismatch;
 
-   fun eq (Sexp(AtomExp(a),AtomExp(b))) =
+   fun eq (AtomExp(a)) (AtomExp(b)) =
      (case (a,b) of
            (Int i, Int j) =>
            if i = j then AtomExp(T)
            else AtomExp(NIL)
-          | _ => AtomExp(NIL));
+          | (Ident a, Ident b) =>
+            if a = b then AtomExp(T)
+             else AtomExp(NIL)
+          | _ => AtomExp(NIL))
+      | eq _ _ = raise ParameterMismatch;
 
-  fun plus (Sexp(AtomExp(a),AtomExp(b))) =
+  fun plus (AtomExp(a)) (AtomExp(b)) =
     (case (a,b) of
           (Int i, Int j) =>
             let
@@ -312,9 +329,10 @@ let
             in
               AtomExp(Int(atom))
             end
-         | _ => AtomExp(NIL));
+         | _ => AtomExp(NIL))
+    | plus _ _ = raise ParameterMismatch;
 
-   fun minus (Sexp(AtomExp(a),AtomExp(b))) =
+   fun minus (AtomExp(a)) (AtomExp(b)) =
      (case (a,b) of
            (Int i, Int j) =>
              let
@@ -322,9 +340,10 @@ let
              in
                AtomExp(Int(atom))
              end
-          | _ => AtomExp(NIL));
+          | _ => AtomExp(NIL))
+      | minus _ _ = raise ParameterMismatch;
 
-  fun times (Sexp(AtomExp(a),AtomExp(b))) =
+  fun times (AtomExp(a)) (AtomExp(b)) =
     (case (a,b) of
           (Int i, Int j) =>
             let
@@ -332,9 +351,10 @@ let
             in
               AtomExp(Int(atom))
             end
-         | _ => AtomExp(NIL));
+         | _ => AtomExp(NIL))
+     | times _ _ = raise ParameterMismatch;
 
-   fun quotient (Sexp(AtomExp(a),AtomExp(b))) =
+   fun quotient (AtomExp(a)) (AtomExp(b)) =
      (case (a,b) of
            (Int i, Int j) =>
              let
@@ -342,9 +362,10 @@ let
              in
                AtomExp(Int(atom))
              end
-          | _ => AtomExp(NIL));
+          | _ => AtomExp(NIL))
+      | quotient _ _ = raise ParameterMismatch;
 
-    fun remainder (Sexp(AtomExp(a),AtomExp(b))) =
+    fun remainder (AtomExp(a)) (AtomExp(b)) =
       (case (a,b) of
             (Int i, Int j) =>
               let
@@ -352,48 +373,88 @@ let
               in
                 AtomExp(Int(atom))
               end
-           | _ => AtomExp(NIL));
+           | _ => AtomExp(NIL))
+       | remainder _ _ = raise ParameterMismatch;
 (* built-in functions            *)
 
 
 
     (* function: bound - checks that referenced variables are bound in a-list *)
-    fun bound x z =
+    fun bound x (AtomExp(NIL)) = AtomExp(NIL)
+      | bound x z = if (eq x (car (car z))) = AtomExp(T) then AtomExp(T)
+                            else bound x (cdr z)
     ;
     (* function: getval - returns the value of a variable from the a-list *)
-    fun getval name alist =
-     (* |  getval name [] =  *)
+    fun getval name (AtomExp(NIL)) = AtomExp(NIL)
+      | getval name alist = if (eq name (car (car alist))) = AtomExp(T) then cdr (car alist)
+                            else getval name (cdr alist)
     ;
 
     (* function: eval_defun - checks defun usage and adds function def to the global d-list *)
-    fun eval_defun s a d =
-    ;
-
-
-    (* function: check_formal - checks function parameters from matching T or NIL *)
-    fun check_formal x =
+    fun eval_defun s a d = (d := Sexp(s, !d); car s)
     ;
 
     (* function: addpairs - checks function parameters and binds formals to actuals *)
-    fun addpairs xlist ylist z =
+    fun addpairs (AtomExp(NIL)) (AtomExp(NIL)) z = z
+      | addpairs (Sexp(xh,xt)) (Sexp(yh,yt)) z = Sexp (Sexp(xh, yh), (addpairs xt yt z))
+      | addpairs _ _ z = raise ParameterMismatch
     ;
 
     (* function: eval - top-level s-expression evaluation loop *)
-    fun eval exp a d =
-      (case exp of
-             AtomExp NIL => AtomExp(NIL)
-           | AtomExp T => AtomExp(T)
-           | AtomExp Int i => AtomExp(Int(i))
-           | AtomExp Ident s => AtomExp(NIL))
+    fun eval (AtomExp(atom)) a d =
+        (case atom of
+            NIL => AtomExp(NIL)
+          | T => AtomExp(T)
+          | Int i => AtomExp(Int(i))
+          | Ident s => if (bound (AtomExp(atom)) a) = AtomExp(T) then getval (AtomExp(atom)) a
+                          else raise UnboundVar)
+      | eval (Sexp(AtomExp(Ident(f)), t)) a d =
+          (case f of
+              "quote" => (case t of
+                              Sexp(h, AtomExp(NIL)) => h
+                             | _ => raise ParameterMismatch )
+            | "cond" => evcon t a d
+            | "defun" => eval_defun t a d
+            |  f => apply (AtomExp(Ident(f))) (evlist t a d) a d )
+       | eval _ a d = raise EvalError "invalid expression"
+
+
+
+
+
 
     (* function: evcon - evaluates a COND statement *)
     and evcon x a d =
+          (case (eval (car(car x)) a d) of
+              AtomExp(T) => eval (car (cdr (car x))) a d
+            | AtomExp(NIL) => evcon (cdr x) a d
+            | _ => raise EvalError "conditional without match!")
 
     (* function: evlist - evaluates a list of expressions and returns a list of results *)
-    and evlist x a d =
+    and evlist (AtomExp(NIL)) a d = AtomExp(NIL)
+      | evlist (AtomExp(atom)) a d = AtomExp(atom)
+      | evlist (Sexp(Sexp(AtomExp(Ident("quote")), t2),t)) a d = (eval (Sexp(AtomExp(Ident("quote")), t2)) a d)
+      | evlist (Sexp(h,t)) a d = Sexp( (eval h a d), (evlist t a d))
 
     (* function: apply - performs function application, handles built-ins *)
-    and apply f x a d =
+    and apply (AtomExp(Ident(exp))) x a d =
+      (case exp of
+             "car" => car x
+           | "cdr" => cdr x
+           | "cons" => cons (car x) (cdr x)
+           | "atom" => atom (car x)
+           | "eq" => eq (car x) (car (cdr x))
+           | "less" => less (car x) (car (cdr x))
+           | "greater" => greater (car x) (car (cdr x))
+           | "int" => int (car x)
+           | "null" => null (car x)
+           | "plus" => plus (car x) (car (cdr x))
+           | "minus" => minus (car x) (car (cdr x))
+           | "times" => times (car x) (car (cdr x))
+           | "quotient" => quotient (car x) (car (cdr x))
+           | "remainder" => remainder (car x) (car (cdr x))
+           | _ => eval (car (cdr (getval (AtomExp(Ident(exp))) (!d)))) (addpairs (car (getval (AtomExp(Ident(exp))) (!d))) x a) d)
+        | apply _ x a d = raise ParameterMismatch
     ;
 
 
