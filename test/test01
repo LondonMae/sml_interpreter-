@@ -8,4 +8,24 @@
 ((eq x (car l)) t)
 ( t (member x (cdr l)))))))
 
-(member 3 (quote(3 2)))
+(member 3 (quote(2 3 4)))
+
+(defun union (s1 s2)
+(cond ( (null s1) s2)
+( (null s2) s1)
+( t (cond ( (member (car s1) s2)
+(union (cdr s1) s2))
+( t
+(cons (car s1) (union (cdr s1) s2)))))))
+
+(union (quote (1 2 3 4)) (quote (3 4 5)))
+
+(defun notsosilly (a b)
+            (cond
+               ((eq a 0) (plus b 1))
+               ((eq b 0) (notsosilly (minus a 1) 1))
+               (t (notsosilly (minus a 1) (notsosilly a (minus b 1))))
+             ))
+(notsosilly 2 4)
+(notsosilly 3 5)
+(notsosilly 0 0)

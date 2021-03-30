@@ -264,28 +264,31 @@ let
 
     (* function: bound - checks that referenced variables are bound in a-list *)
     fun bound x (AtomExp(NIL)) = AtomExp(NIL)
-      | bound x (Sexp(Sexp(car,cdr),t)) = if car = x then AtomExp(T)
-                                          else bound x t
-      | bound x _ = raise ParameterMismatch
+      | bound x (Sexp(Sexp(car,cdr),t)) =
+          if car = x then AtomExp(T)
+          else bound x t
+      | bound x _ = raise EvalError "a-list cannot be evaluated"
     ;
 
     (* function: getval - returns the value of a variable from the a-list *)
     fun getval name (AtomExp(NIL)) = AtomExp(NIL)
-      | getval name (Sexp(Sexp(car,cdr),t)) = if name = car then cdr
-                                              else getval name t
-      | getval name _ = raise ParameterMismatch
+      | getval name (Sexp(Sexp(car,cdr),t)) =
+          if name = car then cdr
+          else getval name t
+      | getval name _ = raise EvalError "list cannot be evaluated"
     ;
 
     (* function: eval_defun - checks defun usage and adds function def to the global d-list *)
     fun eval_defun s a d =
-      ( case s of
+      (case s of
           Sexp (car,cdr) => (d := Sexp(s, !d); car)
-        | _ => raise ParameterMismatch )
+        | _ => raise EvalError "incorrect function definition"
+      )
     ;
 
     (* function: addpairs - checks function parameters and binds formals to actuals *)
     fun addpairs (AtomExp(NIL)) (AtomExp(NIL)) z = z
-      | addpairs (Sexp(xh,xt)) (Sexp(yh,yt)) z = Sexp (Sexp(xh, yh), (addpairs xt yt z))
+      | addpairs (Sexp(xh,xt)) (Sexp(yh,yt)) z = Sexp(Sexp(xh, yh), (addpairs xt yt z))
       | addpairs _ _ z = raise ParameterMismatch
     ;
 
@@ -296,21 +299,19 @@ let
           | T => AtomExp(T)
           | Int i => AtomExp(Int(i))
           | Ident s => if (bound (AtomExp(atom)) a) = AtomExp(T) then getval (AtomExp(atom)) a
-                          else raise UnboundVar)
+                          else raise UnboundVar
+        )
       | eval (Sexp(AtomExp(Ident(f)), t)) a d =
           (case f of
               "quote" => (case t of
                               Sexp(h, AtomExp(NIL)) => h
-                             | _ => raise ParameterMismatch )
+                             | _ => raise ParameterMismatch
+                         )
             | "cond" => evcon t a d
             | "defun" => eval_defun t a d
-            |  f => apply (AtomExp(Ident(f))) (evlist t a d) a d )
+            |  f => apply (AtomExp(Ident(f))) (evlist t a d) a d
+          )
        | eval _ a d = raise EvalError "invalid expression"
-
-
-
-
-
 
     (* function: evcon - evaluates a COND statement *)
     and evcon (Sexp(Sexp(h,Sexp(exp, t)),cdr)) a d =
@@ -320,39 +321,15 @@ let
           | _ => raise EvalError "conditional without match!")
       | evcon _ a d = raise ParameterMismatch
 
+    (* function: evcon - evaluates function arguments *)
     and evlist (AtomExp(NIL)) a d = AtomExp(NIL)
       | evlist (AtomExp(atom)) a d = AtomExp(atom)
-      (* | evlist (Sexp(Sexp(AtomExp(Ident("quote")), t2),t)) a d = (eval (Sexp(AtomExp(Ident("quote")), t2)) a d) *)
-      | evlist (Sexp(h,t)) a d = Sexp( (eval h a d), (evlist t a d))
+      | evlist (Sexp(h,t)) a d = Sexp((eval h a d), (evlist t a d))
 
     (* function: apply - performs function application, handles built-ins *)
     and apply (AtomExp(Ident(exp))) x a d =
       let
       (* built-in functions            *)
-        fun car (Sexp(a,b)) = a
-          | car _ = raise ParameterMismatch;
-
-        fun cdr (Sexp(a,b)) = b
-          | cdr _ = raise ParameterMismatch;
-
-        fun cons a b = Sexp(a,b);
-
-        fun atom (Sexp(a,b)) = AtomExp(NIL)
-         |  atom (AtomExp(a)) = AtomExp(T);
-
-        fun int (AtomExp(a)) =
-          (case a of
-                Int i => AtomExp(T)
-               | _ => AtomExp(NIL) )
-          | int _ = raise ParameterMismatch;
-           ;
-
-        fun null (AtomExp(a)) =
-         (case a of
-               NIL => AtomExp(T)
-              | _ => AtomExp(NIL))
-          | null (Sexp(h,t)) = AtomExp(NIL)
-
         fun less (AtomExp(a)) (AtomExp(b)) =
          (case (a,b) of
                (Int i, Int j) =>
@@ -443,23 +420,72 @@ let
       (* built-in functions            *)
       in
         (case exp of
-               "car" => car x
-             | "cdr" => cdr x
-             | "cons" => cons (car x) (cdr x)
-             | "atom" => atom (car x)
-             | "eq" => eq (car x) (car (cdr x))
-             | "less" => less (car x) (car (cdr x))
-             | "greater" => greater (car x) (car (cdr x))
-             | "int" => int (car x)
-             | "null" => null (car x)
-             | "plus" => plus (car x) (car (cdr x))
-             | "minus" => minus (car x) (car (cdr x))
-             | "times" => times (car x) (car (cdr x))
-             | "quotient" => quotient (car x) (car (cdr x))
-             | "remainder" => remainder (car x) (car (cdr x))
-             | _ => eval (car (cdr (getval (AtomExp(Ident(exp))) (!d)))) (addpairs (car (getval (AtomExp(Ident(exp))) (!d))) x a) d)
-          end
-        | apply _ x a d = raise ParameterMismatch
+               "car" => (case x of
+                          Sexp(Sexp(car,cdr),t) => car
+                          | _ => raise ParameterMismatch
+                        )
+             | "cdr" => (case x of
+                          Sexp(Sexp(car,cdr),t) => cdr
+                          | _ => raise ParameterMismatch
+                        )
+             | "cons" => (case x of
+                          Sexp(car, Sexp(h,t)) => Sexp(car,h)
+                          | _ => raise ParameterMismatch
+                        )
+             | "atom" => (case x of
+                          Sexp(AtomExp(atom), cdr) => AtomExp(T)
+                          | Sexp(_,cdr) => AtomExp(NIL)
+                          | _ => raise ParameterMismatch
+                        )
+             | "int" => (case x of
+                          Sexp(AtomExp(Int(atom)), cdr) => AtomExp(T)
+                          | Sexp(_,cdr) => AtomExp(NIL)
+                          | _ => raise ParameterMismatch
+                        )
+             | "null" => (case x of
+                          Sexp(AtomExp(NIL), cdr) => AtomExp(T)
+                          | Sexp(_,cdr) => AtomExp(NIL)
+                          | _ => raise ParameterMismatch
+                         )
+             | "eq" => (case x of
+                          Sexp(car, Sexp(h,t)) => eq car h
+                          | _ => raise ParameterMismatch
+                        )
+             | "less" => (case x of
+                            Sexp(car, Sexp(h,t)) => less car h
+                            | _ => raise ParameterMismatch
+                         )
+             | "greater" => (case x of
+                              Sexp(car, Sexp(h,t)) => greater car h
+                              | _ => raise ParameterMismatch
+                            )
+             | "plus" => (case x of
+                            Sexp(car, Sexp(h,t)) => plus car h
+                            | _ => raise ParameterMismatch
+                         )
+             | "minus" => (case x of
+                            Sexp(car, Sexp(h,t)) => minus car h
+                            | _ => raise ParameterMismatch
+                          )
+             | "times" => (case x of
+                            Sexp(car, Sexp(h,t)) => times car h
+                            | _ => raise ParameterMismatch
+                          )
+             | "quotient" => (case x of
+                                Sexp(car, Sexp(h,t)) => quotient car h
+                                | _ => raise ParameterMismatch
+                             )
+             | "remainder" => (case x of
+                                Sexp(car, Sexp(h,t)) => remainder car h
+                                | _ => raise ParameterMismatch
+                              )
+             | _ => (case (getval (AtomExp(Ident(exp))) (!d)) of
+                      Sexp(formals,Sexp(body,rest)) => eval body (addpairs formals x a) d
+                      | _ => raise EvalError "undefined function"
+                    )
+          )
+        end
+      | apply _ x a d = raise ParameterMismatch
     ;
 
 
