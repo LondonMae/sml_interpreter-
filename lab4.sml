@@ -427,66 +427,24 @@ let
              | remainder _ _ = raise ParameterMismatch;
       (* built-in functions            *)
       in
-        (case exp of
-               "car" => (case x of
-                          Sexp(Sexp(car,cdr),t) => car
-                          | _ => raise ParameterMismatch
-                        )
-             | "cdr" => (case x of
-                          Sexp(Sexp(car,cdr),t) => cdr
-                          | _ => raise ParameterMismatch
-                        )
-             | "cons" => (case x of
-                          Sexp(car, Sexp(h,t)) => Sexp(car,h)
-                          | _ => raise ParameterMismatch
-                        )
-             | "atom" => (case x of
-                          Sexp(AtomExp(atom), cdr) => AtomExp(T)
-                          | Sexp(_,cdr) => AtomExp(NIL)
-                          | _ => raise ParameterMismatch
-                        )
-             | "int" => (case x of
-                          Sexp(AtomExp(Int(atom)), cdr) => AtomExp(T)
-                          | Sexp(_,cdr) => AtomExp(NIL)
-                          | _ => raise ParameterMismatch
-                        )
-             | "null" => (case x of
-                          Sexp(AtomExp(NIL), cdr) => AtomExp(T)
-                          | Sexp(_,cdr) => AtomExp(NIL)
-                          | _ => raise ParameterMismatch
-                         )
-             | "eq" => (case x of
-                          Sexp(car, Sexp(h,t)) => eq car h
-                          | _ => raise ParameterMismatch
-                        )
-             | "less" => (case x of
-                            Sexp(car, Sexp(h,t)) => less car h
-                            | _ => raise ParameterMismatch
-                         )
-             | "greater" => (case x of
-                              Sexp(car, Sexp(h,t)) => greater car h
-                              | _ => raise ParameterMismatch
-                            )
-             | "plus" => (case x of
-                            Sexp(car, Sexp(h,t)) => plus car h
-                            | _ => raise ParameterMismatch
-                         )
-             | "minus" => (case x of
-                            Sexp(car, Sexp(h,t)) => minus car h
-                            | _ => raise ParameterMismatch
-                          )
-             | "times" => (case x of
-                            Sexp(car, Sexp(h,t)) => times car h
-                            | _ => raise ParameterMismatch
-                          )
-             | "quotient" => (case x of
-                                Sexp(car, Sexp(h,t)) => quotient car h
-                                | _ => raise ParameterMismatch
-                             )
-             | "remainder" => (case x of
-                                Sexp(car, Sexp(h,t)) => remainder car h
-                                | _ => raise ParameterMismatch
-                              )
+        (case (exp, x) of
+               ("car", Sexp(Sexp(car,cdr),t)) => car
+             | ("cdr", Sexp(Sexp(car,cdr),t)) => cdr
+             | ("cons",Sexp(car, Sexp(h,t))) => Sexp(car,h)
+             | ("atom",Sexp(AtomExp(atom), cdr)) => AtomExp(T)
+             | ("atom",Sexp(_,cdr)) => AtomExp(NIL)
+             | ("int", Sexp(AtomExp(Int(atom)), cdr)) => AtomExp(T)
+             | ("int", Sexp(_,cdr)) => AtomExp(NIL)
+             | ("null", Sexp(AtomExp(NIL), cdr)) => AtomExp(T)
+             | ("null", Sexp(_,cdr)) => AtomExp(NIL)
+             | ("eq", Sexp(car, Sexp(h,t))) => eq car h
+             | ("less", Sexp(car, Sexp(h,t))) => less car h
+             | ("greater", Sexp(car, Sexp(h,t))) => greater car h
+             | ("plus", Sexp(car, Sexp(h,t))) => plus car h
+             | ("minus", Sexp(car, Sexp(h,t))) => minus car h
+             | ("times", Sexp(car, Sexp(h,t))) => times car h
+             | ("quotient", Sexp(car, Sexp(h,t))) => quotient car h
+             | ("remainder", Sexp(car, Sexp(h,t))) => remainder car h
              | _ => (case (getval (AtomExp(Ident(exp))) (!d)) of
                       Sexp(formals,Sexp(body,rest)) => eval body (addpairs formals x a) d
                       | _ => raise EvalError "undefined function"
