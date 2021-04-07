@@ -288,7 +288,15 @@ let
 
     (* function: addpairs - checks function parameters and binds formals to actuals *)
     fun addpairs (AtomExp(NIL)) (AtomExp(NIL)) z = z
-      | addpairs (Sexp(xh,xt)) (Sexp(yh,yt)) z = Sexp(Sexp(xh, yh), (addpairs xt yt z))
+      | addpairs (Sexp(xh,xt)) (Sexp(yh,yt)) z =
+          (case xh of
+              AtomExp(T) => raise EvalError "keyword used as parameter"
+            | AtomExp(NIL) => raise EvalError "keyword used as parameter"
+            | _ =>
+                (case xt of
+                  Sexp(h,t) => if xh = h then raise EvalError "parameters with same name"
+                               else Sexp(Sexp(xh, yh), (addpairs xt yt z))
+                 | _ => Sexp(Sexp(xh, yh), (addpairs xt yt z))))
       | addpairs _ _ z = raise ParameterMismatch
     ;
 
